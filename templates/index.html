@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task List</title>
+  <style>
+    body { font-family: sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    form { display: inline; }
+    li { margin-bottom: 0.5rem; }
+    .completed .task-title { text-decoration: line-through; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>Task List</h1>
+
+  <form action="{{ url_for('add_task') }}" method="post">
+    <label for="task-title">New task</label>
+    <input id="task-title" name="title" type="text" maxlength="200" required>
+    <button id="add-task" type="submit">Add</button>
+  </form>
+
+  {% if tasks %}
+  <ul id="task-list">
+    {% for task in tasks %}
+    <li class="task{% if task.completed %} completed{% endif %}">
+      <span class="task-title">{{ task.title }}</span>
+      {% if not task.completed %}
+      <form action="{{ url_for('complete_task', task_id=task.id) }}" method="post">
+        <button class="complete-task" type="submit">Complete</button>
+      </form>
+      {% endif %}
+      <form action="{{ url_for('delete_task', task_id=task.id) }}" method="post">
+        <button class="delete-task" type="submit">Delete</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p id="no-tasks">No tasks yet.</p>
+  {% endif %}
+</body>
+</html>
