@@ -59,3 +59,19 @@ jobs:
 
       - name: Run Bandit
         run: python -m bandit --recursive . --severity-level medium --exclude ./.venv   # medium or high findings fail the job
+
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the repository
+        uses: actions/checkout@v7
+
+      - name: Scan packages for known vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25   # v0.36.0, pinned to a commit ID
+        with:
+          version: v0.74.0                     # the Trivy version to run, never "latest"
+          scan-type: fs                        # scan the files in the repository
+          scan-ref: .                          # start in the repository's main folder
+          scanners: vuln                       # check packages for known vulnerabilities only
+          severity: HIGH,CRITICAL              # only these severities count
+          exit-code: "1"                       # fail the job if anything is found
