@@ -1,4 +1,5 @@
 # requirements-dev.txt
 --requirement requirements.txt
 pytest==9.2.0
-
+ruff==0.17.5
+bandit==1.9.4
