@@ -75,3 +75,12 @@ jobs:
           scanners: vuln                       # check packages for known vulnerabilities only
           severity: HIGH,CRITICAL              # only these severities count
           exit-code: "1"                       # fail the job if anything is found
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the repository
+        uses: actions/checkout@v7
+
+      - name: Build the Docker image
+        run: docker build --tag task-list:ci .   # fails the job if the Dockerfile does not build
