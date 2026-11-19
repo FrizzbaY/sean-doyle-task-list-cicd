@@ -1,0 +1,32 @@
+# .dockerignore
+
+# Version control and CI configuration
+.git
+.github
+.gitignore
+
+# Python cache files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments and secrets
+.venv/
+venv/
+.env
+
+# Local database files (container uses its own)
+instance/
+*.db
+
+# Tests, dev tools and docs (running app does not need)
+tests/
+pytest.ini
+requirements-dev.txt
+README.md
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
