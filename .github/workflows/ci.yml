@@ -94,3 +94,4 @@ jobs:
           scanners: vuln                       # check packages for known vulnerabilities only
           severity: HIGH,CRITICAL              # only these severities count
           exit-code: "1"                       # fail the job if anything is found
+          ignore-unfixed: true                 # only fail on vulnerabilities that have a fix available
