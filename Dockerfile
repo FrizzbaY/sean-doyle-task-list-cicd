@@ -19,6 +19,11 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     DATABASE_PATH=/data/tasks.db
 
+# Install newer versions of the Debian packages already in the image
+RUN apt-get update \
+    && apt-get upgrade --yes \
+    && rm --recursive --force /var/lib/apt/lists/*
+
 # Unprivileged user, plus the two folders the app must be able to write to
 RUN groupadd --system app \
     && useradd --system --gid app --no-create-home app \
