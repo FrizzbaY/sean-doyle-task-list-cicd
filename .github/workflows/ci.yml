@@ -75,3 +75,23 @@ jobs:
           scanners: vuln                       # check packages for known vulnerabilities only
           severity: HIGH,CRITICAL              # only these severities count
           exit-code: "1"                       # fail the job if anything is found
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the repository
+        uses: actions/checkout@v7
+
+      - name: Build the Docker image
+        run: docker build --tag task-list:ci .   # fails the job if the Dockerfile does not build
+
+      - name: Scan the Docker image for known vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25   # v0.36.0, pinned to a commit ID
+        with:
+          version: v0.74.0                     # the Trivy version to run, never "latest"
+          scan-type: image                     # scan a built Docker image
+          image-ref: task-list:ci              # must match the --tag used in the build step
+          scanners: vuln                       # check packages for known vulnerabilities only
+          severity: HIGH,CRITICAL              # only these severities count
+          exit-code: "1"                       # fail the job if anything is found
+          ignore-unfixed: true                 # only fail on vulnerabilities that have a fix available
