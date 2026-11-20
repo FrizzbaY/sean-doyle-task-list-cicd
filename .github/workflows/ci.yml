@@ -95,3 +95,9 @@ jobs:
           severity: HIGH,CRITICAL              # only these severities count
           exit-code: "1"                       # fail the job if anything is found
           ignore-unfixed: true                 # only fail on vulnerabilities that have a fix available
+
+      - name: Start the container
+        run: docker run --detach --name task-list-smoke --publish 127.0.0.1:8000:8000 task-list:ci   # run in the background, same port mapping as Compose
+
+      - name: Check that the home page loads
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 1 --retry-all-errors http://localhost:8000/   # retry for up to about 10 seconds while the app starts
