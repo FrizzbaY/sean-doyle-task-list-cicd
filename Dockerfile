@@ -31,6 +31,9 @@ RUN groupadd --system app \
     && chown app:app /app/instance /data
 
 COPY --from=builder /opt/venv /opt/venv
+# pip is only needed to install packages, which stage 1 already did
+RUN /usr/local/bin/python -m pip uninstall --yes pip \
+    && /opt/venv/bin/python -m pip uninstall --yes pip
 
 WORKDIR /app
 COPY app.py .
