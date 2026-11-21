@@ -20,8 +20,7 @@ resource "aws_iam_role" "github_actions" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:FrizzbaY/sean-doyle-task-list-cicd:ref:refs/heads/main"
-          }
+          "token.actions.githubusercontent.com:sub" = "repo:FrizzbaY@46717290/sean-doyle-task-list-cicd@1459235586:ref:refs/heads/main" }
         }
       }
     ]
