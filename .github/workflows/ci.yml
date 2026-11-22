@@ -145,11 +145,11 @@ jobs:
       - name: Deploy to the instance
         run: |
           cat > deploy.sh <<'SCRIPT'
-          set -euo pipefail
+          set -eu
           export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
           workdir=$(mktemp --directory)
-          curl --fail --silent --show-error --location "https://github.com/${REPOSITORY}/archive/${COMMIT}.tar.gz" \
-            | tar --extract --gzip --directory "$workdir" --strip-components=1
+          curl --fail --silent --show-error --location --output "$workdir/repository.tar.gz" "https://github.com/${REPOSITORY}/archive/${COMMIT}.tar.gz"
+          tar --extract --gzip --file "$workdir/repository.tar.gz" --directory "$workdir" --strip-components=1
           sed --in-place "s/:IMAGE_TAG/:${COMMIT}/" "$workdir/k8s/deployment.yaml"
           /usr/local/bin/kubectl apply --filename "$workdir/k8s/"
           /usr/local/bin/kubectl rollout status deployment/task-list --timeout=80s
