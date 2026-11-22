@@ -11,3 +11,27 @@ resource "aws_vpc_security_group_egress_rule" "instance_all_outbound" {
   cidr_ipv4         = "0.0.0.0/0"
   description       = "Allow all outbound traffic"
 }
+
+# The instance that runs k3s.
+resource "aws_instance" "task_list" {
+  ami                         = "ami-08e03b36885006906"
+  instance_type               = "t3.small"
+  iam_instance_profile        = aws_iam_instance_profile.instance.name
+  vpc_security_group_ids      = [aws_security_group.instance.id]
+  associate_public_ip_address = true
+
+  # Require session tokens when reading the instance metadata (IMDSv2)
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  tags = {
+    Name = "task-list"
+  }
+}
