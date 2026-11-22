@@ -20,6 +20,19 @@ resource "aws_instance" "task_list" {
   vpc_security_group_ids      = [aws_security_group.instance.id]
   associate_public_ip_address = true
 
+  # Script that cloud-init runs once, as root, when the instance first starts
+  user_data = <<-EOT
+    #!/bin/bash
+    set -euo pipefail
+
+    # Install k3s, pinned to one version
+    curl --silent --show-error --fail --location https://get.k3s.io \
+      | INSTALL_K3S_VERSION="v1.37.2+k3s1" sh -
+  EOT
+
+  # user_data only runs at first boot, so replace the instance when the script changes
+  user_data_replace_on_change = true
+
   # Require session tokens when reading the instance metadata (IMDSv2)
   metadata_options {
     http_tokens = "required"
