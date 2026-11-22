@@ -25,6 +25,33 @@ resource "aws_instance" "task_list" {
     #!/bin/bash
     set -euo pipefail
 
+    # Install the helper that gets a registry login from the instance's role
+    mkdir --parents /var/lib/rancher/credentialprovider/bin
+    curl --silent --show-error --fail --location \
+      --output /var/lib/rancher/credentialprovider/bin/ecr-credential-provider \
+      https://artifacts.k8s.io/binaries/cloud-provider-aws/v1.37.0/linux/amd64/ecr-credential-provider-linux-amd64
+    chmod 755 /var/lib/rancher/credentialprovider/bin/ecr-credential-provider
+
+    # Tell Kubernetes to use the helper for images from this kind of registry
+    cat > /var/lib/rancher/credentialprovider/config.yaml <<'EOF'
+    apiVersion: kubelet.config.k8s.io/v1
+    kind: CredentialProviderConfig
+    providers:
+      - name: ecr-credential-provider
+        matchImages:
+          - "*.dkr.ecr.*.amazonaws.com"
+        defaultCacheDuration: "12h"
+        apiVersion: credentialprovider.kubelet.k8s.io/v1
+    EOF
+
+    # Tell k3s where the helper and its configuration are
+    mkdir --parents /etc/rancher/k3s
+    cat > /etc/rancher/k3s/config.yaml <<'EOF'
+    kubelet-arg:
+      - "image-credential-provider-bin-dir=/var/lib/rancher/credentialprovider/bin"
+      - "image-credential-provider-config=/var/lib/rancher/credentialprovider/config.yaml"
+    EOF
+
     # Install k3s, pinned to one version
     curl --silent --show-error --fail --location https://get.k3s.io \
       | INSTALL_K3S_VERSION="v1.37.2+k3s1" sh -
