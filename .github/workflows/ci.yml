@@ -153,6 +153,7 @@ jobs:
           sed --in-place "s/:IMAGE_TAG/:${COMMIT}/" "$workdir/k8s/deployment.yaml"
           /usr/local/bin/kubectl apply --filename "$workdir/k8s/"
           /usr/local/bin/kubectl rollout status deployment/task-list --timeout=80s
+          curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors "http://$(/usr/local/bin/kubectl get service task-list --output jsonpath='{.spec.clusterIP}')/"   # home page must load through the service
           SCRIPT
 
           # The first two lines set the variables the script uses on the instance
