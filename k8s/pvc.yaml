@@ -1,0 +1,12 @@
+# k8s/pvc.yaml
+# Requests storage for the SQLite database that survives pod replacement
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: task-list-data
+spec:
+  accessModes:
+    - ReadWriteOnce   # one node can mount it for reading and writing
+  resources:
+    requests:
+      storage: 1Gi
