@@ -1,0 +1,38 @@
+# k8s/deployment.yaml
+# Runs the task list container in the cluster and keeps it running
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-list
+spec:
+  replicas: 1   # SQLite is a single file, so only one copy of the app can write to it
+  strategy:
+    type: Recreate   # stop the old pod before starting the new one, so two pods never share the database file
+  selector:
+    matchLabels:
+      app: task-list
+  template:
+    metadata:
+      labels:
+        app: task-list
+    spec:
+      containers:
+        - name: task-list
+          image: 412341941075.dkr.ecr.eu-north-1.amazonaws.com/task-list:IMAGE_TAG   # IMAGE_TAG is replaced by the pipeline
+          ports:
+            - containerPort: 8000
+          readinessProbe:   # traffic is only sent once this check passes
+            httpGet:
+              path: /
+              port: 8000
+          livenessProbe:   # the container is restarted if this check fails
+            httpGet:
+              path: /
+              port: 8000
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: task-list-data   # the claim defined in k8s/pvc.yaml

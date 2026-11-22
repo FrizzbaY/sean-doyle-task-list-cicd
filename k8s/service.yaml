@@ -1,0 +1,13 @@
+# k8s/service.yaml
+# Gives the task list pods a stable address inside the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-list
+spec:
+  type: ClusterIP   # reachable only inside the cluster, because the instance has no open inbound ports
+  selector:
+    app: task-list   # sends traffic to pods with this label
+  ports:
+    - port: 80   # port the Service listens on
+      targetPort: 8000   # port the container listens on
