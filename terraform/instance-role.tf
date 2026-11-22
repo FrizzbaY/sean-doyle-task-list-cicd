@@ -27,3 +27,29 @@ resource "aws_iam_instance_profile" "instance" {
   name = "task-list-instance"
   role = aws_iam_role.instance.name
 }
+
+# What the instance may do in ECR: download images from the task-list repository only
+resource "aws_iam_role_policy" "instance_ecr_pull" {
+  name = "ecr-pull"
+  role = aws_iam_role.instance.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = aws_ecr_repository.task_list.arn
+      }
+    ]
+  })
+}
