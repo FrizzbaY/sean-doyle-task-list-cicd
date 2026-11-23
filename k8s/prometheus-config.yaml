@@ -1,0 +1,15 @@
+# k8s/prometheus-config.yaml
+# Settings file for Prometheus, deployed with the other manifests
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s   # how often Prometheus reads the metrics page
+    scrape_configs:
+      - job_name: task-list
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["task-list:80"]   # Service name and port from k8s/service.yaml

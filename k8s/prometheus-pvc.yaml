@@ -1,0 +1,12 @@
+# k8s/prometheus-pvc.yaml
+# Requests storage for Prometheus data that survives pod replacement
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

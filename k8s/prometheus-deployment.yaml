@@ -1,0 +1,56 @@
+# k8s/prometheus-deployment.yaml
+# Runs Prometheus in the cluster
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # Prometheus locks its data folder, so the old pod must stop first
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534   # the unprivileged "nobody" user
+        fsGroup: 65534   # lets that user write to the storage volume
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3.16.0   # check the current version on Docker Hub
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=3d   # delete data older than 3 days
+          ports:
+            - containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 512Mi   # stops Prometheus from using all the instance memory
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-data
