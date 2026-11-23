@@ -134,7 +134,7 @@ jobs:
       contents: read
       id-token: write
     env:
-      INSTANCE_ID: i-0edec6c82f35f202b   # from the Terraform output instance_id
+      INSTANCE_ID: i-08d429801bb71fe20   # from the Terraform output instance_id
     steps:
       - name: Sign in to AWS
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd   # v6.3.0

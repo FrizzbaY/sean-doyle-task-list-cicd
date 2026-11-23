@@ -53,3 +53,23 @@ resource "aws_iam_role_policy" "instance_ecr_pull" {
     ]
   })
 }
+
+# Used to build the Parameter Store address below
+data "aws_caller_identity" "current" {}
+
+# What the instance may read from Parameter Store: the Grafana admin password only
+resource "aws_iam_role_policy" "instance_grafana_password" {
+  name = "grafana-password-read"
+  role = aws_iam_role.instance.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "ssm:GetParameter"
+        Resource = "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/task-list/grafana-admin-password"
+      }
+    ]
+  })
+}

@@ -24,7 +24,15 @@ resource "aws_instance" "task_list" {
   user_data = <<-EOT
     #!/bin/bash
     set -euo pipefail
-
+    # Install the AWS command line tool, so the deploy script can read the Grafana password
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install --yes unzip
+    curl --silent --show-error --fail --location \
+      --output /tmp/awscliv2.zip \
+      https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    unzip -q /tmp/awscliv2.zip -d /tmp
+    /tmp/aws/install
+    rm --recursive --force /tmp/aws /tmp/awscliv2.zip
     # Install the helper that gets a registry login from the instance's role
     mkdir --parents /var/lib/rancher/credentialprovider/bin
     curl --silent --show-error --fail --location \
