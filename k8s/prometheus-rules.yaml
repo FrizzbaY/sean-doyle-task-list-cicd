@@ -1,0 +1,34 @@
+# k8s/prometheus-rules.yaml
+# Alert rules for Prometheus, shown in the Alerts page of the Prometheus web page
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+data:
+  alerts.yml: |
+    groups:
+      - name: task-list
+        rules:
+          - alert: TaskListDown
+            expr: up{job="task-list"} == 0   # Prometheus cannot read the app's metrics page
+            for: 1m   # must stay true for 1 minute before the alert fires
+            labels:
+              severity: critical
+            annotations:
+              summary: The task list app is down
+
+          - alert: TaskListServerErrors
+            expr: sum(increase(http_requests_total{status=~"5.."}[5m])) > 0   # any 5xx response in the last 5 minutes
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: The task list app returned server errors
+
+          - alert: TaskListSlowRequests
+            expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 0.5   # 95th percentile above 0.5 seconds
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: The task list app is responding slowly
