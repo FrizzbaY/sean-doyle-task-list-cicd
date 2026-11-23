@@ -1,9 +1,25 @@
 import os
 import sqlite3
+import time
 
-from flask import Flask, g, redirect, render_template, request, url_for
+from flask import Flask, Response, g, redirect, render_template, request, url_for
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 MAX_TITLE_LENGTH = 200
+
+# Module level, so every call of create_app shares the same counters
+HTTP_REQUESTS = Counter(
+    "http_requests_total",
+    "Number of HTTP requests handled",
+    ["method", "endpoint", "status"],
+)
+HTTP_REQUEST_DURATION = Histogram(
+    "http_request_duration_seconds",
+    "Time taken to handle an HTTP request",
+    ["method", "endpoint"],
+)
+
+TASKS_ADDED = Counter("tasks_added_total", "Number of tasks added")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS tasks (
@@ -41,6 +57,26 @@ def create_app(test_config=None):
     with app.app_context():
         get_db().executescript(SCHEMA)
 
+    @app.before_request
+    def start_timer():
+        g.request_start = time.perf_counter()
+
+    @app.after_request
+    def record_metrics(response):
+        if request.path == "/metrics":
+            return response
+        # Route pattern, not the real path, so /1/complete and /2/complete share one label
+        endpoint = request.url_rule.rule if request.url_rule else "unmatched"
+        HTTP_REQUESTS.labels(request.method, endpoint, response.status_code).inc()
+        HTTP_REQUEST_DURATION.labels(request.method, endpoint).observe(
+            time.perf_counter() - g.request_start
+        )
+        return response
+
+    @app.get("/metrics")
+    def metrics():
+        return Response(generate_latest(), content_type=CONTENT_TYPE_LATEST)
+
     @app.get("/")
     def index():
         tasks = get_db().execute(
@@ -55,6 +91,7 @@ def create_app(test_config=None):
             db = get_db()
             with db:
                 db.execute("INSERT INTO tasks (title) VALUES (?)", (title,))
+            TASKS_ADDED.inc()
         return redirect(url_for("index"))
 
     @app.post("/<int:task_id>/complete")
