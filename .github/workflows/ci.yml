@@ -154,8 +154,20 @@ jobs:
           GRAFANA_PASSWORD=$(/usr/local/bin/aws ssm get-parameter --region eu-north-1 --name /task-list/grafana-admin-password --with-decryption --query Parameter.Value --output text)   # reads the password using the instance role
           printf '%s' "$GRAFANA_PASSWORD" | /usr/local/bin/kubectl create secret generic grafana-admin --from-file=password=/dev/stdin --dry-run=client --output yaml | /usr/local/bin/kubectl apply --filename -   # creates or updates the Secret, with the password passed through a pipe so it is not in the command line
           /usr/local/bin/kubectl apply --filename "$workdir/k8s/"
+          /usr/local/bin/kubectl rollout restart deployment/prometheus   # Prometheus does not reload its settings file when it changes
           /usr/local/bin/kubectl rollout status deployment/task-list --timeout=80s
           curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors "http://$(/usr/local/bin/kubectl get service task-list --output jsonpath='{.spec.clusterIP}')/"   # home page must load through the service
+          /usr/local/bin/kubectl rollout status deployment/prometheus --timeout=60s   # wait for the restart that loads the alert rules
+          PROMETHEUS=$(/usr/local/bin/kubectl get service prometheus --output jsonpath='{.spec.clusterIP}')
+          prometheus_check() {   # succeeds when the query returns at least one result
+            curl --silent --show-error --get --data-urlencode "query=$1" "http://${PROMETHEUS}:9090/api/v1/query" | grep --quiet '"result":\[{'
+          }
+          for attempt in $(seq 1 12); do   # Prometheus needs up to about a minute to scrape the new pods
+            if prometheus_check 'up{job="task-list"} == 1'; then break; fi
+            if [ "$attempt" -eq 12 ]; then echo "Prometheus does not show the app as up"; exit 1; fi
+            sleep 5
+          done
+          prometheus_check '(sum(increase(http_requests_total{status=~"5.."}[2m])) or vector(0)) == 0' || { echo "The app returned server errors after the deploy"; exit 1; }
           SCRIPT
 
           # The first two lines set the variables the script uses on the instance
@@ -170,9 +182,16 @@ jobs:
             --query Command.CommandId \
             --output text)
 
-          # Waits up to about 100 seconds for the script to finish; prints its output if it fails
-          if ! aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID"; then
-            aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
-              --query '[StandardOutputContent, StandardErrorContent]' --output text
-            exit 1
-          fi
+          # Waits up to 5 minutes for the script to finish; prints its output if it fails
+          for attempt in $(seq 1 60); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)
+            if [ "$STATUS" = "Success" ]; then exit 0; fi
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+              aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+                --query '[StandardOutputContent, StandardErrorContent]' --output text
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "The script did not finish within 5 minutes"
+          exit 1
