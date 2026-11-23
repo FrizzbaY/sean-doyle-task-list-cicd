@@ -1,0 +1,16 @@
+
+# k8s/grafana-datasource.yaml
+# Tells Grafana where Prometheus is, so no set-up is needed in the Grafana page
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy   # Grafana's server makes the requests, not your browser
+        url: http://prometheus:9090   # Service name and port from k8s/prometheus-service.yaml
+        isDefault: true

@@ -1,0 +1,13 @@
+# k8s/grafana-service.yaml
+# Gives Grafana a stable address inside the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  type: ClusterIP   # reachable only inside the cluster
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000

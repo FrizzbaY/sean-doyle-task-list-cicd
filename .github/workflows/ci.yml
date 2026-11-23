@@ -151,6 +151,8 @@ jobs:
           curl --fail --silent --show-error --location --output "$workdir/repository.tar.gz" "https://github.com/${REPOSITORY}/archive/${COMMIT}.tar.gz"
           tar --extract --gzip --file "$workdir/repository.tar.gz" --directory "$workdir" --strip-components=1
           sed --in-place "s/:IMAGE_TAG/:${COMMIT}/" "$workdir/k8s/deployment.yaml"
+          GRAFANA_PASSWORD=$(/usr/local/bin/aws ssm get-parameter --region eu-north-1 --name /task-list/grafana-admin-password --with-decryption --query Parameter.Value --output text)   # reads the password using the instance role
+          printf '%s' "$GRAFANA_PASSWORD" | /usr/local/bin/kubectl create secret generic grafana-admin --from-file=password=/dev/stdin --dry-run=client --output yaml | /usr/local/bin/kubectl apply --filename -   # creates or updates the Secret, with the password passed through a pipe so it is not in the command line
           /usr/local/bin/kubectl apply --filename "$workdir/k8s/"
           /usr/local/bin/kubectl rollout status deployment/task-list --timeout=80s
           curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors "http://$(/usr/local/bin/kubectl get service task-list --output jsonpath='{.spec.clusterIP}')/"   # home page must load through the service
