@@ -1,0 +1,12 @@
+# k8s/grafana-pvc.yaml
+# Requests storage for Grafana's own data that survives pod replacement
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

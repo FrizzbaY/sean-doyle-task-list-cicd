@@ -1,0 +1,60 @@
+# k8s/grafana-deployment.yaml
+# Runs Grafana in the cluster
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # Grafana's data is a single file, so the old pod must stop first
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472   # the unprivileged user the Grafana image uses
+        fsGroup: 472   # lets that user write to the storage volume
+      containers:
+        - name: grafana
+          image: grafana/grafana:13.3.1   # check the current version on Docker Hub
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin   # the Secret the deploy job creates
+                  key: password
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 512Mi   # stops Grafana from using all the instance memory
+          volumeMounts:
+            - name: datasource
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: data
+              mountPath: /var/lib/grafana
+      volumes:
+        - name: datasource
+          configMap:
+            name: grafana-datasource
+        - name: data
+          persistentVolumeClaim:
+            claimName: grafana-data
