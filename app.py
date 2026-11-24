@@ -1,6 +1,10 @@
+import json
+import logging
 import os
 import sqlite3
+import sys
 import time
+from datetime import datetime, timezone
 
 from flask import Flask, Response, g, redirect, render_template, request, url_for
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
@@ -28,6 +32,28 @@ CREATE TABLE IF NOT EXISTS tasks (
     completed INTEGER NOT NULL DEFAULT 0
 );
 """
+
+
+class JsonFormatter(logging.Formatter):
+    """Writes each log record as one line of structured text."""
+
+    def format(self, record):
+        entry = {
+            "time": datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
+            "level": record.levelname,
+            "message": record.getMessage(),
+        }
+        entry.update(getattr(record, "fields", {}))   # extra values passed with the log call
+        return json.dumps(entry)
+
+
+# Module level, so the handler is added once even when create_app is called many times
+logger = logging.getLogger("task_list")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)   # standard output, which kubectl logs shows
+    handler.setFormatter(JsonFormatter())
+    logger.addHandler(handler)
 
 
 def create_app(test_config=None):
@@ -67,9 +93,19 @@ def create_app(test_config=None):
             return response
         # Route pattern, not the real path, so /1/complete and /2/complete share one label
         endpoint = request.url_rule.rule if request.url_rule else "unmatched"
+        duration = time.perf_counter() - g.request_start
         HTTP_REQUESTS.labels(request.method, endpoint, response.status_code).inc()
-        HTTP_REQUEST_DURATION.labels(request.method, endpoint).observe(
-            time.perf_counter() - g.request_start
+        HTTP_REQUEST_DURATION.labels(request.method, endpoint).observe(duration)
+        logger.info(
+            "request",
+            extra={
+                "fields": {
+                    "method": request.method,
+                    "endpoint": endpoint,
+                    "status": response.status_code,
+                    "duration_ms": round(duration * 1000, 2),
+                }
+            },
         )
         return response
 
