@@ -4,7 +4,7 @@ import os
 import sqlite3
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flask import Flask, Response, g, redirect, render_template, request, url_for
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
@@ -39,8 +39,7 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record):
         entry = {
-            "time": datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
-            "level": record.levelname,
+            "time": datetime.fromtimestamp(record.created, UTC).isoformat(),            "level": record.levelname,
             "message": record.getMessage(),
         }
         entry.update(getattr(record, "fields", {}))   # extra values passed with the log call
