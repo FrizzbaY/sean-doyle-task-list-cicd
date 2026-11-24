@@ -22,6 +22,7 @@ instance/
 
 # Tests, dev tools and docs (running app does not need)
 tests/
+browser_tests/
 pytest.ini
 requirements-dev.txt
 README.md
