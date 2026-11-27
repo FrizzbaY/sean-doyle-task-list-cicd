@@ -122,7 +122,7 @@ def create_app(test_config=None):
     @app.post("/add")
     def add_task():
         title = request.form.get("title", "").strip()
-        if title and len(title) <= MAX_TITLE_LENGTH:
+        if len(title) <= MAX_TITLE_LENGTH:  # Checks title length but title is empty so pytest should fail...
             db = get_db()
             with db:
                 db.execute("INSERT INTO tasks (title) VALUES (?)", (title,))
@@ -133,14 +133,14 @@ def create_app(test_config=None):
     def complete_task(task_id):
         db = get_db()
         with db:
-            db.execute("UPDATE tasks SET completed = 1 WHERE id = ?", (task_id,))
+            db.execute("UPDATE tasks SET completed = 0 WHERE id = ?", (task_id,))  # Test clicks complete but nothing happens so it fails...
         return redirect(url_for("index"))
 
     @app.post("/<int:task_id>/delete")
     def delete_task(task_id):
         db = get_db()
         with db:
-            db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+            db.execute("DELETE FROM tasks WHERE id = 0 AND ID = ?", (task_id,))  # Test clicks delete and nothing happens so it fails...
         return redirect(url_for("index"))
 
     return app
